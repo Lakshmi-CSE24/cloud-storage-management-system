@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>Cloud Storage Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(1200px circle at 20% -10%, #1b1a17, #0b0d10);
+      color: #eae7e2;
+      overflow: hidden;
+    }
+
+    /* ---------- TOAST ---------- */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: rgba(20,18,15,0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(214,201,165,0.25);
+      padding: 14px 20px;
+      border-radius: 12px;
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+      transition: 0.4s cubic-bezier(.2,.8,.2,1);
+      color: #d6c9a5;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      z-index: 999;
+      letter-spacing: 0.2px;
+    }
+    .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+
+    /* ---------- AUTH ---------- */
+    .auth-page {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .auth-box {
+      width: 420px;
+      background: rgba(20,18,15,0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(214,201,165,0.25);
+      border-radius: 20px;
+      padding: 36px;
+      box-shadow: 0 0 120px rgba(0,0,0,0.8);
+      animation: fadeUp 1s cubic-bezier(.2,.8,.2,1);
+    }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(30px); }
+      to { opacity:1; transform: translateY(0); }
+    }
+
+    .auth-box h1 {
+      font-family: 'Playfair Display', serif;
+      text-align: center;
+      margin: 0;
+      color: #e3d7b0;
+      letter-spacing: 0.5px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: #b7ae9c;
+      margin-bottom: 28px;
+      margin-top: 6px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 13px;
+      margin-top: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(214,201,165,0.25);
+      background: rgba(12,10,8,0.8);
+      color: #eae7e2;
+      font-size: 14px;
+      transition: 0.25s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #e3d7b0;
+      box-shadow: 0 0 0 2px rgba(227,215,176,0.15);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #e3d7b0, #bfa76a);
+      border: none;
+      color: #1a1612;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.primary:hover { transform: translateY(-1px); }
+
+    .muted-btn {
+      background: transparent;
+      border: 1px solid rgba(214,201,165,0.25);
+      color: #eae7e2;
+    }
+
+    .msg {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #d08c8c;
+      text-align: center;
+      min-height: 16px;
+    }
+
+    /* ---------- APP LAYOUT ---------- */
+
+    .app {
+      display: flex;
+      height: 100vh;
+      animation: fadeUp 0.6s ease;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(180deg, rgba(20,18,15,0.95), rgba(12,10,8,0.95));
+      border-right: 1px solid rgba(214,201,165,0.2);
+      padding: 28px;
+    }
+
+    .brand {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      color: #e3d7b0;
+      margin-bottom: 46px;
+      letter-spacing: 0.4px;
+    }
+
+    .nav-item {
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      color: #b7ae9c;
+      transition: 0.25s ease;
+    }
+
+    .nav-item.active, .nav-item:hover {
+      background: rgba(227,215,176,0.08);
+      color: #e3d7b0;
+      box-shadow: inset 0 0 0 1px rgba(227,215,176,0.15);
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: 72px;
+      border-bottom: 1px solid rgba(214,201,165,0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 32px;
+      background: rgba(12,10,8,0.6);
+      backdrop-filter: blur(10px);
+    }
+
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: #e3d7b0;
+      letter-spacing: 0.4px;
+    }
+
+    .logout { color: #d08c8c; cursor: pointer; margin-left: 12px; }
+
+    .content {
+      padding: 32px;
+      overflow-y: auto;
+      animation: pageFade 0.5s ease;
+    }
+
+    @keyframes pageFade {
+      from { opacity:0; transform: translateY(10px); }
+      to { opacity:1; transform: translateY(0); }
+    }
+
+    .card {
+      background: rgba(20,18,15,0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(214,201,165,0.25);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 22px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      transition: 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: rgba(214,201,165,0.15);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #e3d7b0, #bfa76a);
+      transition: width 0.6s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .big-number {
+      font-size: 30px;
+      color: #e3d7b0;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .file-card {
+      border: 1px solid rgba(214,201,165,0.25);
+      border-radius: 16px;
+      padding: 18px;
+      background: rgba(12,10,8,0.7);
+      transition: 0.3s ease;
+    }
+
+    .file-card:hover {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .file-actions button {
+      flex: 1;
+      background: transparent;
+      border: 1px solid rgba(214,201,165,0.25);
+      color: #e3d7b0;
+      font-size: 12px;
+      padding: 8px;
+      border-radius: 10px;
+      transition: 0.2s ease;
+    }
+
+    .file-actions button:hover {
+      background: rgba(227,215,176,0.08);
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- AUTH -->
+<div class="auth-page" id="authBox">
+  <div class="auth-box">
+    <h1>Cloud Storage</h1>
+    <div class="subtitle">A private academic archive for your files</div>
+
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+
+    <button class="primary" onclick="signup()">Create Account</button>
+    <button class="muted-btn" onclick="login()">Login</button>
+
+    <div class="msg" id="authMsg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appBox" style="display:none;">
+
+  <div class="sidebar">
+    <div class="brand">Cloud Storage</div>
+    <div class="nav-item active" onclick="showPage('dashboard', this)">Dashboard</div>
+    <div class="nav-item" onclick="showPage('upload', this)">Upload</div>
+    <div class="nav-item" onclick="showPage('files', this)">My Files</div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Dashboard</div>
+      <div>
+        <span id="userLabel"></span>
+        <span class="logout" onclick="logout()">Logout</span>
+      </div>
+    </div>
+
+    <div class="content" id="page-dashboard"></div>
+    <div class="content" id="page-upload" style="display:none;"></div>
+    <div class="content" id="page-files" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+let currentUser = "";
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.innerText = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2000);
+}
+
+function signup(){
+  authMsg.innerText = "Creating account...";
+
+  google.script.run.withSuccessHandler(res=>{
+    authMsg.innerText = res;
+
+    if(res.includes("success")){
+      showToast("Account created successfully");
+
+      // Clear fields
+      password.value = "";
+
+      // Small UX touch: guide user to login
+      setTimeout(()=>{
+        authMsg.innerText = "Now login using your credentials";
+      }, 1200);
+    }
+  }).signup(email.value, password.value);
+}
+
+function login(){
+  google.script.run.withSuccessHandler(res=>{
+    authMsg.innerText = res;
+    if(res === "Login success"){
+      currentUser = email.value;
+      userLabel.innerText = currentUser;
+      authBox.style.display = "none";
+      appBox.style.display = "flex";
+      loadAll();
+      showToast("Logged in successfully");
+    }
+  }).login(email.value, password.value);
+}
+
+function logout(){
+  // Reset state
+  currentUser = "";
+
+  // Clear inputs
+  email.value = "";
+  password.value = "";
+  authMsg.innerText = "";
+
+  // Show login page
+  appBox.style.display = "none";
+  authBox.style.display = "flex";
+
+  // Optional: reset navigation to Dashboard
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.querySelector(".nav-item").classList.add("active");
+
+  // Reset page title
+  pageTitle.innerText = "Dashboard";
+}
+
+function showPage(page, el){
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  el.classList.add("active");
+
+  document.getElementById("page-dashboard").style.display="none";
+  document.getElementById("page-upload").style.display="none";
+  document.getElementById("page-files").style.display="none";
+
+  document.getElementById("page-"+page).style.display="block";
+  pageTitle.innerText = page.charAt(0).toUpperCase()+page.slice(1);
+}
+
+function loadAll(){
+  loadDashboard();
+  loadUpload();
+  loadFiles();
+}
+
+function loadDashboard(){
+  google.script.run.withSuccessHandler(u=>{
+    let used = parseFloat(u.used);
+    let percent = (used/1024)*100;
+
+    document.getElementById("page-dashboard").innerHTML = `
+      <div class="stats-grid">
+        <div class="card"><div class="big-number">${u.used} MB</div><div>Used</div></div>
+        <div class="card"><div class="big-number">${u.remaining} MB</div><div>Remaining</div></div>
+        <div class="card"><div class="big-number">1024 MB</div><div>Total</div></div>
+      </div>
+      <div class="card">
+        <h3>Storage Usage</h3>
+        <div class="progress-bar"><div class="progress-fill" style="width:${percent}%"></div></div>
+      </div>
+    `;
+  }).getUsage(currentUser);
+}
+
+function loadUpload(){
+  document.getElementById("page-upload").innerHTML = `
+    <div class="card">
+      <h3>Upload Small File</h3>
+      <input type="file" id="fileInput">
+      <button class="primary" onclick="upload()">Upload</button>
+    </div>
+    <div class="card">
+      <h3>Upload Large Files</h3>
+      <p>Uses Google Drive uploader for reliability</p>
+      <button class="primary" onclick="openDrive()">Open Upload Folder</button>
+    </div>
+  `;
+}
+
+function loadFiles(){
+  google.script.run.withSuccessHandler(list=>{
+    let html = '<div class="file-grid">';
+    list.forEach(f=>{
+      html += `
+        <div class="file-card">
+          <div>${f.name}</div>
+          <div style="font-size:12px;color:#b7ae9c">${f.size} MB</div>
+          <div class="file-actions">
+            <button onclick="openFile('${f.name}')">Open</button>
+            <button onclick="downloadFile('${f.name}')">Download</button>
+            <button onclick="delFile('${f.name}')">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+    html += "</div>";
+    document.getElementById("page-files").innerHTML = html || "No files yet";
+  }).listFiles(currentUser);
+}
+
+function upload(){
+  let f = fileInput.files[0];
+  if(!f) return alert("Choose a file");
+
+  let reader = new FileReader();
+  reader.onload = function(){
+    let base64 = reader.result.split(",")[1];
+    google.script.run.withSuccessHandler(msg=>{
+      showToast(msg);
+      loadAll();
+    }).uploadFile(currentUser, base64, f.name);
+  };
+  reader.readAsDataURL(f);
+}
+
+function openDrive(){
+  google.script.run.withSuccessHandler(url=>window.open(url,"_blank")).getUserFolderLink(currentUser);
+}
+
+function delFile(name){
+  google.script.run.withSuccessHandler(msg=>{
+    showToast(msg);
+    loadFiles();
+    loadDashboard();
+  }).deleteFile(currentUser, name);
+}
+
+function openFile(name){
+  google.script.run.withSuccessHandler(url=>window.open(url,"_blank")).getFileUrl(currentUser, name);
+}
+
+function downloadFile(name){
+  google.script.run.withSuccessHandler(url=>window.open(url,"_blank")).getFileDownloadUrl(currentUser, name);
+}
+</script>
+
+</body>
+</html>
